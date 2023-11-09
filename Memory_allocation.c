@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
 
 // Constants
 #define MEMORY_SIZE 100
@@ -89,6 +90,41 @@ int worstFit(Block memory[], int memorySize, int requestSize) {
     return -1; // Allocation failed
 }
 
+// Function to generate request sizes from a normal distribution
+int generateRequestSize(double average, double stddev) {
+    double result;
+    do {
+        result = average + stddev * cos(2 * M_PI * rand() / RAND_MAX) * sqrt(-2 * log((double)rand() / RAND_MAX));
+    } while (result < 1 || result > MEMORY_SIZE - 1);
+
+    return (int)result;
+}
+
+// Simulation loop
+double simulationLoop(Block memory[], int memorySize, double averageRequestSize, double stddevRequestSize) {
+    int holesExamined = 0;
+    int requestCount = 0;
+
+    while (1) {
+        // Choose a random number s for the request size
+        int requestSize = generateRequestSize(averageRequestSize, stddevRequestSize);
+
+        // Attempt to allocate memory using one of the allocation strategies
+        int allocatedBlock = firstFit(memory, MEMORY_SIZE, requestSize);
+        if (allocatedBlock != -1) {
+            // Allocation succeeded
+            holesExamined += allocatedBlock + 1; // Count the holes examined for this request
+            requestCount++;
+        } else {
+            // Allocation failed, exit the loop
+            break;
+        }
+    }
+
+    // Calculate and return the average number of holes examined
+    return (double)holesExamined / requestCount;
+}
+
 int main() {
     Block memory[MEMORY_SIZE];
     int lastAllocated = 0;
@@ -96,14 +132,20 @@ int main() {
     // Initialization
     initializeMemory(memory, MEMORY_SIZE);
 
-    // Example allocation
-    int requestSize = 10;
-    int allocatedBlock = firstFit(memory, MEMORY_SIZE, requestSize);
-    if (allocatedBlock != -1) {
-        printf("Allocated block at index %d\n", allocatedBlock);
-    } else {
-        printf("Allocation failed.\n");
+    // Set simulation parameters
+    int simulationSteps = 100;  // Replace with your desired number of simulation steps
+    double averageRequestSize = 10.0;  // Replace with your desired average request size
+    double stddevRequestSize = 3.0;  // Replace with your desired standard deviation for request size
+
+    // Run the simulation
+    double averageHolesExamined = 0.0;
+    for (int step = 0; step < simulationSteps; step++) {
+        averageHolesExamined += simulationLoop(memory, MEMORY_SIZE, averageRequestSize, stddevRequestSize);
     }
+
+    // Calculate and print the average number of holes examined
+    averageHolesExamined /= simulationSteps;
+    printf("Average Holes Examined: %lf\n", averageHolesExamined);
 
     return 0;
 }
