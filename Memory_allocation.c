@@ -29,67 +29,6 @@ int firstFit(Block memory[], int memorySize, int requestSize) {
     return -1; // Allocation failed
 }
 
-// Function to perform memory allocation using Next-Fit strategy
-int nextFit(Block memory[], int memorySize, int requestSize, int *lastAllocated) {
-    for (int i = *lastAllocated; i < memorySize; i++) {
-        if (memory[i].size >= requestSize) {
-            memory[i].size -= requestSize;
-            *lastAllocated = i;
-            return i;
-        }
-    }
-
-    for (int i = 0; i < *lastAllocated; i++) {
-        if (memory[i].size >= requestSize) {
-            memory[i].size -= requestSize;
-            *lastAllocated = i;
-            return i;
-        }
-    }
-
-    return -1; // Allocation failed
-}
-
-// Function to perform memory allocation using Best-Fit strategy
-int bestFit(Block memory[], int memorySize, int requestSize) {
-    int bestFitIdx = -1;
-    int bestFitSize = MEMORY_SIZE + 1;
-
-    for (int i = 0; i < memorySize; i++) {
-        if (memory[i].size >= requestSize && memory[i].size - requestSize < bestFitSize) {
-            bestFitIdx = i;
-            bestFitSize = memory[i].size - requestSize;
-        }
-    }
-
-    if (bestFitIdx != -1) {
-        memory[bestFitIdx].size -= requestSize;
-        return bestFitIdx;
-    }
-
-    return -1; // Allocation failed
-}
-
-// Function to perform memory allocation using Worst-Fit strategy
-int worstFit(Block memory[], int memorySize, int requestSize) {
-    int worstFitIdx = -1;
-    int worstFitSize = -1;
-
-    for (int i = 0; i < memorySize; i++) {
-        if (memory[i].size >= requestSize && memory[i].size - requestSize > worstFitSize) {
-            worstFitIdx = i;
-            worstFitSize = memory[i].size - requestSize;
-        }
-    }
-
-    if (worstFitIdx != -1) {
-        memory[worstFitIdx].size -= requestSize;
-        return worstFitIdx;
-    }
-
-    return -1; // Allocation failed
-}
-
 // Function to generate request sizes from a normal distribution
 int generateRequestSize(double average, double stddev) {
     double result;
@@ -122,12 +61,11 @@ double simulationLoop(Block memory[], int memorySize, double averageRequestSize,
     }
 
     // Calculate and return the average number of holes examined
-    return (double)holesExamined / requestCount;
+    return (requestCount > 0) ? (double)holesExamined / requestCount : 0.0;
 }
 
 int main() {
     Block memory[MEMORY_SIZE];
-    int lastAllocated = 0;
 
     // Initialization
     initializeMemory(memory, MEMORY_SIZE);
@@ -144,8 +82,12 @@ int main() {
     }
 
     // Calculate and print the average number of holes examined
-    averageHolesExamined /= simulationSteps;
-    printf("Average Holes Examined: %lf\n", averageHolesExamined);
+    if (simulationSteps > 0) {
+        averageHolesExamined /= simulationSteps;
+        printf("Average Holes Examined: %lf\n", averageHolesExamined);
+    } else {
+        printf("Simulation steps must be greater than zero.\n");
+    }
 
     return 0;
 }
