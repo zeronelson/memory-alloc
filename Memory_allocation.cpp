@@ -2,6 +2,7 @@
 #include <cmath>
 #include <cstdlib>
 #include <ctime>
+#include <fstream>
 // Constants
 #define MEMORY_SIZE 100
 
@@ -142,40 +143,48 @@ int main() {
 
     // Set simulation parameters
     int simulationSteps = 100;  // Replace with your desired number of simulation steps
-    double averageRequestSize = 10.0;  // Replace with your desired average request size
-    double stddevRequestSize = 3.0;  // Replace with your desired standard deviation for request size
+
+    std::ofstream outFile("simulation_data.txt");
 
     // Run the simulation for each allocation strategy
-    double avgHolesExaminedFirstFit = simulationLoop(memory, MEMORY_SIZE, averageRequestSize, stddevRequestSize, &firstFit, simulationSteps);
-    double memoryUtilizationFirstFit = calculateMemoryUtilization(memory, MEMORY_SIZE);
+    for (int i = 0; i < 10; i++) {  // Replace 10 with the number of simulations you want to run
+        double averageRequestSize = rand() % 50 + 1;  // Random average request size between 1 and 50
+        double stddevRequestSize = rand() % 10 + 1;  // Random standard deviation between 1 and 10
 
-    initializeMemory(memory, MEMORY_SIZE);  // Reset memory
+        double avgHolesExaminedFirstFit = simulationLoop(memory, MEMORY_SIZE, averageRequestSize, stddevRequestSize, &firstFit, simulationSteps);
+        double memoryUtilizationFirstFit = calculateMemoryUtilization(memory, MEMORY_SIZE);
 
-    double avgHolesExaminedNextFit = simulationLoop(memory, MEMORY_SIZE, averageRequestSize, stddevRequestSize, &nextFit, simulationSteps);
-    double memoryUtilizationNextFit = calculateMemoryUtilization(memory, MEMORY_SIZE);
+        initializeMemory(memory, MEMORY_SIZE);  // Reset memory
 
-    initializeMemory(memory, MEMORY_SIZE);  // Reset memory
+        double avgHolesExaminedNextFit = simulationLoop(memory, MEMORY_SIZE, averageRequestSize, stddevRequestSize, &nextFit, simulationSteps);
+        double memoryUtilizationNextFit = calculateMemoryUtilization(memory, MEMORY_SIZE);
 
-    double avgHolesExaminedBestFit = simulationLoop(memory, MEMORY_SIZE, averageRequestSize, stddevRequestSize, &bestFit, simulationSteps);
-    double memoryUtilizationBestFit = calculateMemoryUtilization(memory, MEMORY_SIZE);
+        initializeMemory(memory, MEMORY_SIZE);  // Reset memory
 
-    initializeMemory(memory, MEMORY_SIZE);  // Reset memory
+        double avgHolesExaminedBestFit = simulationLoop(memory, MEMORY_SIZE, averageRequestSize, stddevRequestSize, &bestFit, simulationSteps);
+        double memoryUtilizationBestFit = calculateMemoryUtilization(memory, MEMORY_SIZE);
 
-    double avgHolesExaminedWorstFit = simulationLoop(memory, MEMORY_SIZE, averageRequestSize, stddevRequestSize, &worstFit, simulationSteps);
-    double memoryUtilizationWorstFit = calculateMemoryUtilization(memory, MEMORY_SIZE);
+        initializeMemory(memory, MEMORY_SIZE);  // Reset memory
 
-    // Output results
-    std::cout << "First-Fit - Average Holes Examined: " << avgHolesExaminedFirstFit << std::endl;
-    std::cout << "First-Fit - Memory Utilization: " << memoryUtilizationFirstFit << std::endl;
+        double avgHolesExaminedWorstFit = simulationLoop(memory, MEMORY_SIZE, averageRequestSize, stddevRequestSize, &worstFit, simulationSteps);
+        double memoryUtilizationWorstFit = calculateMemoryUtilization(memory, MEMORY_SIZE);
 
-    std::cout << "Next-Fit - Average Holes Examined: " << avgHolesExaminedNextFit << std::endl;
-    std::cout << "Next-Fit - Memory Utilization: " << memoryUtilizationNextFit << std::endl;
+        // Output results
+        std::cout << "Simulation " << i+1 << std::endl;
+        std::cout << "Average Request Size: " << averageRequestSize << ", Standard Deviation: " << stddevRequestSize << std::endl;
+        std::cout << "First-Fit - Average Holes Examined: " << avgHolesExaminedFirstFit << ", Memory Utilization: " << memoryUtilizationFirstFit << std::endl;
+        std::cout << "Next-Fit - Average Holes Examined: " << avgHolesExaminedNextFit << ", Memory Utilization: " << memoryUtilizationNextFit << std::endl;
+        std::cout << "Best-Fit - Average Holes Examined: " << avgHolesExaminedBestFit << ", Memory Utilization: " << memoryUtilizationBestFit << std::endl;
+        std::cout << "Worst-Fit - Average Holes Examined: " << avgHolesExaminedWorstFit << ", Memory Utilization: " << memoryUtilizationWorstFit << std::endl;
+        std::cout << "----------------------------------------" << std::endl;
 
-    std::cout << "Best-Fit - Average Holes Examined: " << avgHolesExaminedBestFit << std::endl;
-    std::cout << "Best-Fit - Memory Utilization: " << memoryUtilizationBestFit << std::endl;
+        outFile << i << " " << avgHolesExaminedFirstFit << " " << memoryUtilizationFirstFit << " "
+                << avgHolesExaminedNextFit << " " << memoryUtilizationNextFit << " "
+                << avgHolesExaminedBestFit << " " << memoryUtilizationBestFit << " "
+                << avgHolesExaminedWorstFit << " " << memoryUtilizationWorstFit << std::endl;
+    }
 
-    std::cout << "Worst-Fit - Average Holes Examined: " << avgHolesExaminedWorstFit << std::endl;
-    std::cout << "Worst-Fit - Memory Utilization: " << memoryUtilizationWorstFit << std::endl;
+    outFile.close();
 
     return 0;
 }
