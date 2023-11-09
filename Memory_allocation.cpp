@@ -1,14 +1,14 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <math.h>
-
+#include <iostream>
+#include <cmath>
+#include <cstdlib>
+#include <ctime>
 // Constants
 #define MEMORY_SIZE 100
 
 // Data structure to represent a block in memory
-typedef struct Block {
+struct Block {
     int size;  // Block size (positive for allocated, negative for free)
-} Block;
+};
 
 // Function to initialize memory with random block sizes
 void initializeMemory(Block memory[], int memorySize) {
@@ -19,7 +19,7 @@ void initializeMemory(Block memory[], int memorySize) {
 }
 
 // Function to perform memory allocation using First-Fit strategy
-int firstFit(Block memory[], int memorySize, int requestSize) {
+int firstFit(Block memory[], int memorySize, int requestSize, int& lastAllocated) {
     for (int i = 0; i < memorySize; i++) {
         if (memory[i].size >= requestSize) {
             memory[i].size -= requestSize;
@@ -30,7 +30,7 @@ int firstFit(Block memory[], int memorySize, int requestSize) {
 }
 
 // Function to perform memory allocation using Next-Fit strategy
-int nextFit(Block memory[], int memorySize, int requestSize, int *lastAllocated) {
+int nextFit(Block memory[], int memorySize, int requestSize, int &lastAllocated) {
     static int currentIndex = 0;
 
     for (int i = 0; i < memorySize; i++) {
@@ -38,8 +38,8 @@ int nextFit(Block memory[], int memorySize, int requestSize, int *lastAllocated)
 
         if (memory[index].size >= requestSize) {
             memory[index].size -= requestSize;
-            *lastAllocated = index;
-            currentIndex = index;  // Update currentIndex for next iteration
+            lastAllocated = index;
+            currentIndex = index;  // Update currentIndex for the next iteration
             return index;
         }
     }
@@ -47,11 +47,8 @@ int nextFit(Block memory[], int memorySize, int requestSize, int *lastAllocated)
     return -1; // Allocation failed
 }
 
-
-
-
 // Function to perform memory allocation using Best-Fit strategy
-int bestFit(Block memory[], int memorySize, int requestSize) {
+int bestFit(Block memory[], int memorySize, int requestSize, int& lastAllocated) {
     int bestFitIdx = -1;
     int bestFitSize = MEMORY_SIZE + 1;
 
@@ -71,7 +68,7 @@ int bestFit(Block memory[], int memorySize, int requestSize) {
 }
 
 // Function to perform memory allocation using Worst-Fit strategy
-int worstFit(Block memory[], int memorySize, int requestSize) {
+int worstFit(Block memory[], int memorySize, int requestSize, int& lastAllocated) {
     int worstFitIdx = -1;
     int worstFitSize = -1;
 
@@ -94,25 +91,24 @@ int worstFit(Block memory[], int memorySize, int requestSize) {
 int generateRequestSize(double average, double stddev) {
     double result;
     do {
-        result = average + stddev * cos(2 * M_PI * rand() / RAND_MAX) * sqrt(-2 * log((double)rand() / RAND_MAX));
+        result = average + stddev * cos(2 * M_PI * static_cast<double>(rand()) / RAND_MAX) * sqrt(-2 * log(static_cast<double>(rand()) / RAND_MAX));
     } while (result < 1 || result > MEMORY_SIZE - 1);
 
-    return (int)result;
+    return static_cast<int>(result);
 }
 
 // Simulation loop
-// Simulation loop
-double simulationLoop(Block memory[], int memorySize, double averageRequestSize, double stddevRequestSize, int (*allocationStrategy)(Block[], int, int, int*)) {
+double simulationLoop(Block memory[], int memorySize, double averageRequestSize, double stddevRequestSize, int (*allocationStrategy)(Block[], int, int, int&), int simulationSteps) {
     int holesExamined = 0;
     int requestCount = 0;
     int lastAllocated = 0;
 
-    while (1) {
+    for (int step = 0; step < simulationSteps; step++) {
         // Choose a random number s for the request size
         int requestSize = generateRequestSize(averageRequestSize, stddevRequestSize);
 
         // Attempt to allocate memory using the specified allocation strategy
-        int allocatedBlock = allocationStrategy(memory, MEMORY_SIZE, requestSize, &lastAllocated);
+        int allocatedBlock = allocationStrategy(memory, MEMORY_SIZE, requestSize, lastAllocated);
         if (allocatedBlock != -1) {
             // Allocation succeeded
             holesExamined += allocatedBlock + 1; // Count the holes examined for this request
@@ -124,7 +120,18 @@ double simulationLoop(Block memory[], int memorySize, double averageRequestSize,
     }
 
     // Calculate and return the average number of holes examined
-    return (requestCount > 0) ? (double)holesExamined / requestCount : 0.0;
+    return (requestCount > 0) ? static_cast<double>(holesExamined) / requestCount : 0.0;
+}
+
+// Function to calculate memory utilization
+double calculateMemoryUtilization(Block memory[], int memorySize) {
+    int totalAllocatedSize = 0;
+    for (int i = 0; i < memorySize; i++) {
+        if (memory[i].size > 0) {
+            totalAllocatedSize += memory[i].size;
+        }
+    }
+    return static_cast<double>(totalAllocatedSize) / memorySize;
 }
 
 int main() {
@@ -139,10 +146,36 @@ int main() {
     double stddevRequestSize = 3.0;  // Replace with your desired standard deviation for request size
 
     // Run the simulation for each allocation strategy
-    printf("First-Fit - Average Holes Examined: %lf\n", simulationLoop(memory, MEMORY_SIZE, averageRequestSize, stddevRequestSize, (int (*)(Block[], int, int, int*))&firstFit));
-    printf("Next-Fit - Average Holes Examined: %lf\n", simulationLoop(memory, MEMORY_SIZE, averageRequestSize, stddevRequestSize, &nextFit));
-    printf("Best-Fit - Average Holes Examined: %lf\n", simulationLoop(memory, MEMORY_SIZE, averageRequestSize, stddevRequestSize, (int (*)(Block[], int, int, int*))&bestFit));
-    printf("Worst-Fit - Average Holes Examined: %lf\n", simulationLoop(memory, MEMORY_SIZE, averageRequestSize, stddevRequestSize, (int (*)(Block[], int, int, int*))&worstFit));
+    double avgHolesExaminedFirstFit = simulationLoop(memory, MEMORY_SIZE, averageRequestSize, stddevRequestSize, &firstFit, simulationSteps);
+    double memoryUtilizationFirstFit = calculateMemoryUtilization(memory, MEMORY_SIZE);
+
+    initializeMemory(memory, MEMORY_SIZE);  // Reset memory
+
+    double avgHolesExaminedNextFit = simulationLoop(memory, MEMORY_SIZE, averageRequestSize, stddevRequestSize, &nextFit, simulationSteps);
+    double memoryUtilizationNextFit = calculateMemoryUtilization(memory, MEMORY_SIZE);
+
+    initializeMemory(memory, MEMORY_SIZE);  // Reset memory
+
+    double avgHolesExaminedBestFit = simulationLoop(memory, MEMORY_SIZE, averageRequestSize, stddevRequestSize, &bestFit, simulationSteps);
+    double memoryUtilizationBestFit = calculateMemoryUtilization(memory, MEMORY_SIZE);
+
+    initializeMemory(memory, MEMORY_SIZE);  // Reset memory
+
+    double avgHolesExaminedWorstFit = simulationLoop(memory, MEMORY_SIZE, averageRequestSize, stddevRequestSize, &worstFit, simulationSteps);
+    double memoryUtilizationWorstFit = calculateMemoryUtilization(memory, MEMORY_SIZE);
+
+    // Output results
+    std::cout << "First-Fit - Average Holes Examined: " << avgHolesExaminedFirstFit << std::endl;
+    std::cout << "First-Fit - Memory Utilization: " << memoryUtilizationFirstFit << std::endl;
+
+    std::cout << "Next-Fit - Average Holes Examined: " << avgHolesExaminedNextFit << std::endl;
+    std::cout << "Next-Fit - Memory Utilization: " << memoryUtilizationNextFit << std::endl;
+
+    std::cout << "Best-Fit - Average Holes Examined: " << avgHolesExaminedBestFit << std::endl;
+    std::cout << "Best-Fit - Memory Utilization: " << memoryUtilizationBestFit << std::endl;
+
+    std::cout << "Worst-Fit - Average Holes Examined: " << avgHolesExaminedWorstFit << std::endl;
+    std::cout << "Worst-Fit - Memory Utilization: " << memoryUtilizationWorstFit << std::endl;
 
     return 0;
 }
